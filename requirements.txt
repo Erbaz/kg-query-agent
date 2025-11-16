@@ -1,0 +1,7 @@
+fastapi[standard]>=0.112.0,<0.113.0
+uvicorn[standard]>=0.22.0
+llama-index
+python-dotenv 
+llama-index-llms-gemini
+llama-index-embeddings-gemini
+llama-index-graph-stores-memgraph
