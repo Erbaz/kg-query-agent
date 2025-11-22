@@ -5,3 +5,4 @@ python-dotenv
 llama-index-llms-gemini
 llama-index-embeddings-gemini
 llama-index-graph-stores-memgraph
+redis

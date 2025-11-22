@@ -1,8 +1,12 @@
 from fastapi import FastAPI
+from src.redis.config import redis
+from contextlib import asynccontextmanager
+
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
-from src.routes.query import router as query_router
+from src.routes.chat import router as chat_router
+
 
 app = FastAPI(title="kg-query-agent")
 
@@ -15,7 +19,7 @@ app.add_middleware(
 )
 
 # include routers
-app.include_router(query_router)
+app.include_router(chat_router)
 
 
 @app.get("/")
@@ -27,7 +31,10 @@ async def root():
 async def health():
     return {"status": "healthy"}
 
+
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("main:app", host="0.0.0.0", port=int(os.environ.get("PORT", 8000)), reload=True)
+    uvicorn.run(
+        "main:app", host="0.0.0.0", port=int(os.environ.get("PORT", 8000)), reload=True
+    )

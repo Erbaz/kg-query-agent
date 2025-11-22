@@ -1,0 +1,94 @@
+///////////////////////////////////////////////////////////////////////////////////////
+CALL migrate.mysql(
+  'SELECT kcu.TABLE_NAME, kcu.COLUMN_NAME, tc.CONSTRAINT_TYPE
+   FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
+   JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+     ON kcu.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
+    AND kcu.TABLE_NAME = tc.TABLE_NAME
+   WHERE kcu.CONSTRAINT_SCHEMA = "employees"',
+  {user: "root", password: "root", host: "host.docker.internal", database: "employees"}
+)
+YIELD row
+UNWIND [row] AS r
+WITH 
+  coalesce(r.TABLE_NAME, "NULL") AS tableName,
+  coalesce(r.COLUMN_NAME, "NULL") AS columnName,
+  coalesce(r.CONSTRAINT_TYPE, "NONE") AS constraintType
+
+// Ensure table and column nodes exist
+MERGE (t:Table {name: tableName})
+MERGE (c:Column {id: tableName + "." + columnName, name: columnName})
+
+// Base relationship
+MERGE (t)-[:HAS_COLUMN]->(c)
+
+// Specialized relationships
+FOREACH (_ IN CASE WHEN constraintType = "PRIMARY KEY" THEN [1] ELSE [] END |
+  MERGE (c)-[:IS_PRIMARY_KEY_OF]->(t)
+)
+FOREACH (_ IN CASE WHEN constraintType = "FOREIGN KEY" THEN [1] ELSE [] END |
+  MERGE (c)-[:IS_FOREIGN_KEY_OF]->(t)
+);
+
+// Query 2
+CALL migrate.mysql(
+  'SELECT CONSTRAINT_NAME, TABLE_NAME, COLUMN_NAME, 
+          REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME 
+   FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+   WHERE CONSTRAINT_SCHEMA = "employees" AND REFERENCED_TABLE_NAME IS NOT NULL',
+  {user: "root", password: "root", host: "host.docker.internal", database: "employees"}
+)
+YIELD row
+UNWIND [row] AS r
+WITH 
+  coalesce(r.CONSTRAINT_NAME, "NULL") AS constraintName,
+  coalesce(r.TABLE_NAME, "NULL") AS tableName,
+  coalesce(r.COLUMN_NAME, "NULL") AS columnName,
+  coalesce(r.REFERENCED_TABLE_NAME, "NULL") AS refTableName,
+  coalesce(r.REFERENCED_COLUMN_NAME, "NULL") AS refColumnName
+
+// Ensure all nodes exist
+MERGE (srcTable:Table {name: tableName})
+MERGE (refTable:Table {name: refTableName})
+MERGE (constraint:Constraint {name: constraintName})
+MERGE (srcCol:Column {id: tableName + "." + columnName, name: columnName})
+MERGE (refCol:Column {id: refTableName + "." + refColumnName, name: refColumnName})
+
+// Build relationships
+MERGE (srcTable)-[:REFERENCES {via: constraintName}]->(refTable)
+MERGE (constraint)-[:USES_COLUMN]->(srcCol)
+MERGE (constraint)-[:REFERENCES_COLUMN]->(refCol)
+MERGE (srcCol)-[:REFERENCES_COLUMN]->(refCol)
+MERGE (srcCol)-[:REFERENCES_TABLE]->(refTable);
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+CALL migrate.mysql(
+  'SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE 
+   FROM INFORMATION_SCHEMA.COLUMNS 
+   WHERE TABLE_SCHEMA = "employees"',
+  {user: "root", password: "root", host: "host.docker.internal", database: "employees"}
+)
+YIELD row
+UNWIND [row] AS r
+WITH
+  coalesce(r.TABLE_NAME, "NULL") AS tableName,
+  coalesce(r.COLUMN_NAME, "NULL") AS columnName,
+  coalesce(r.COLUMN_TYPE, "UNKNOWN") AS columnType,
+  coalesce(r.IS_NULLABLE, "UNKNOWN") AS isNullable
+
+// Ensure column node exists (referencing your previous id schema)
+MERGE (c:Column {id: tableName + "." + columnName, name: columnName})
+
+// Create metadata nodes
+MERGE (t:ColumnType {name: columnType})
+MERGE (n:Nullable {name: isNullable, value: isNullable})
+
+// Relationships
+MERGE (c)-[:HAS_TYPE]->(t)
+MERGE (c)-[:IS_NULLABLE]->(n);
+
+MATCH (n)
+OPTIONAL MATCH (n)-[r]-()
+RETURN n, r;
