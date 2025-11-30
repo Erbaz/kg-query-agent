@@ -23,7 +23,7 @@ Action Input: the input to the tool, in a JSON format representing the kwargs (e
 
 Please ALWAYS start with a Thought.
 
-NEVER surround your response with markdown code markers. You may use code markers within your response if you need to.
+NEVER surround your response with markdown code markers.
 
 Triple backquotes / backticks are prohibited to be used. Wether inside a JSON or otherwise.
 

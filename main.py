@@ -1,6 +1,4 @@
 from fastapi import FastAPI
-from src.redis.config import redis
-from contextlib import asynccontextmanager
 
 from fastapi.middleware.cors import CORSMiddleware
 import os

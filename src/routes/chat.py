@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from src.agent.chat_agent import ChatAgent
-from src.redis.chat_cache import chat_cache
+from src.cache.chat_cache import chat_cache
 import uuid
 import json
 
@@ -18,7 +18,6 @@ class QueryResponse(BaseModel):
 
 class CreatChatRequest(BaseModel):
     model: str
-    api_key: str
     memgraph_url: str
     memgraph_user: str
     memgraph_password: str
@@ -26,7 +25,11 @@ class CreatChatRequest(BaseModel):
     db_user: str
     db_password: str
     db_host: str
+    db_port: str | int
     db_type: str
+    embed_model: str
+    is_ollama: bool | None = None
+    api_key: str | None = None
 
 
 @router.post("/chat")
@@ -36,6 +39,7 @@ async def create_chat(req: CreatChatRequest):
         chat_agent = ChatAgent(
             uuid=chat_id,
             llm_model=req.model,
+            embed_model=req.embed_model,
             api_key=req.api_key,
             kg_url=req.memgraph_url,
             kg_user=req.memgraph_user,
@@ -43,8 +47,10 @@ async def create_chat(req: CreatChatRequest):
             db_name=req.db_name,
             db_type=req.db_type,
             db_host=req.db_host,
+            db_port=req.db_port,
             db_password=req.db_password,
             db_user=req.db_user,
+            is_ollama=req.is_ollama,
         )
 
         print("--- start migration ---")

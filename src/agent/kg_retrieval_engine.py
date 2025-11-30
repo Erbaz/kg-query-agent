@@ -1,3 +1,5 @@
+import re
+
 from llama_index.core.indices.property_graph import (
     PGRetriever,
     LLMSynonymRetriever,
@@ -7,7 +9,6 @@ from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.tools import QueryEngineTool
 from llama_index.graph_stores.memgraph import MemgraphPropertyGraphStore
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
 
@@ -28,10 +29,18 @@ class KGRetrievalEngine:
 
         self.llm = llm
 
+        def strip_markdown_fences(query: str) -> str:
+            # Remove triple backtick code fences and leading/trailing whitespace
+            return re.sub(r"^```(?:\w+)?\s*([\s\S]*?)\s*```$", r"\1", query.strip())
+
         self.sub_retrievers = (
             [
                 LLMSynonymRetriever(self.graph_store, llm=self.llm),
-                TextToCypherRetriever(self.graph_store, llm=self.llm),
+                TextToCypherRetriever(
+                    self.graph_store,
+                    llm=self.llm,
+                    cypher_validator=strip_markdown_fences,
+                ),
             ]
             if sub_retrievers is None
             else sub_retrievers

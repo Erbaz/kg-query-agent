@@ -4,5 +4,10 @@ llama-index
 python-dotenv 
 llama-index-llms-gemini
 llama-index-embeddings-gemini
+llama-index-embeddings-openai
 llama-index-graph-stores-memgraph
-redis
+llama-index-llms-ollama
+llama-index-embeddings-ollama
+psycopg2-binary
+pymysql
+sqlalchemy
