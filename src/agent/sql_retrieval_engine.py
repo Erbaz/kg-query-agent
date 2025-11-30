@@ -26,11 +26,7 @@ def create_sqlalchemy_engine(config: dict):
     }
     """
     dialect = config["db_type"]
-    db_host = (
-        "localhost"
-        if config["db_host"] == "host.docker.internal"
-        else config["db_host"]
-    )
+    db_host = config["db_host"]
     if dialect == "postgresql":
         url = (
             f"postgresql+psycopg2://{config['db_user']}:{config['db_password']}"

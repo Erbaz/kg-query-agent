@@ -1,13 +1,23 @@
 fastapi[standard]>=0.112.0,<0.113.0
 uvicorn[standard]>=0.22.0
 llama-index
-python-dotenv 
+python-dotenv
+
+# LLM + Embedding Providers
 llama-index-llms-gemini
 llama-index-embeddings-gemini
 llama-index-embeddings-openai
-llama-index-graph-stores-memgraph
 llama-index-llms-ollama
 llama-index-embeddings-ollama
+
+# Graph DB
+llama-index-graph-stores-memgraph
+
+# Databases
 psycopg2-binary
 pymysql
 sqlalchemy
+
+# Needed to fix MySQL "cryptography required" error
+cryptography
+

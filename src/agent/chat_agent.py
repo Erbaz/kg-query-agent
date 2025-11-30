@@ -99,9 +99,9 @@ class ChatAgent:
         """Return an LLM instance based on the provided model name."""
         try:
             if model_name and is_ollama:
-                print("→ USING OLLAMA")
                 return Ollama(
                     model=model_name,
+                    base_url="http://host.docker.internal:11434",
                     request_timeout=120.0,
                     context_window=8000,
                 )
@@ -163,4 +163,14 @@ class ChatAgent:
                 print(delta, end="", flush=True)
 
         await handler
+        messages = self.chat_memory.get_all()
+        print(
+            "--------------------------------------------------------------------------"
+        )
+        print(
+            f"Current tokens used in conversation: {self.chat_memory._token_count_for_messages(messages)}"
+        )
+        print(
+            "--------------------------------------------------------------------------"
+        )
         return response_text
