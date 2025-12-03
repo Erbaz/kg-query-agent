@@ -1,6 +1,6 @@
 fastapi[standard]>=0.112.0,<0.113.0
 uvicorn[standard]>=0.22.0
-llama-index
+llama-index==0.14.8
 python-dotenv
 
 # LLM + Embedding Providers

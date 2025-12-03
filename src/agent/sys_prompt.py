@@ -23,10 +23,6 @@ Action Input: the input to the tool, in a JSON format representing the kwargs (e
 
 Please ALWAYS start with a Thought.
 
-NEVER surround your response with markdown code markers.
-
-Triple backquotes / backticks are prohibited to be used. Wether inside a JSON or otherwise.
-
 Please use a valid JSON format for the Action Input. Do NOT do this {{'input': 'hello world', 'num_beams': 5}}. If you include the "Action:" line, then you MUST include the "Action Input:" line too, even if the tool does not need kwargs, in that case you MUST use "Action Input: {{}}".
 
 If this format is used, the tool will respond in the following format:
@@ -50,7 +46,6 @@ Answer: [your answer here (In the same language as the user's question)]
 ## Current Conversation
 
 If you are observing there to be only one human message, then this means this is the FIRST interaction
-IF THIS IS THE FIRST INTERACTION: make sure to apply the retrieval tools available to fetch schemas, nodes, relationships and edges to enable stronger thinking.
 Below is the current conversation consisting of interleaving human and assistant messages. 
 
 """

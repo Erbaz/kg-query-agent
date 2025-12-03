@@ -86,3 +86,11 @@ async def query_endpoint(chat_id: str, req: QueryRequest):
     response = await chat_agent.chat_stream(req.question)
 
     return QueryResponse(answer=response)
+
+
+@router.get("/chat/{chat_id}")
+async def get_chat_history(chat_id: str):
+    chat_agent = chat_cache.get(chat_id)
+    if chat_agent is None:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+    return chat_agent.get_chat_history()

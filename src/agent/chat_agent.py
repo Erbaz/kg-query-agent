@@ -62,6 +62,7 @@ class ChatAgent:
         )
         self.sql_engine = SQLRetrievalEngine(
             llm=self.llm,
+            api_key=api_key,
             embed_model_name=embed_model,
             connection_config={
                 "db_type": db_type,
@@ -164,13 +165,15 @@ class ChatAgent:
 
         await handler
         messages = self.chat_memory.get_all()
-        print(
-            "--------------------------------------------------------------------------"
-        )
+        print("-" * 12)
         print(
             f"Current tokens used in conversation: {self.chat_memory._token_count_for_messages(messages)}"
         )
-        print(
-            "--------------------------------------------------------------------------"
-        )
+        print("-" * 12)
         return response_text
+
+    def get_chat_history(self) -> list[dict]:
+        messages = self.chat_memory.get_all()
+        return [
+            msg.model_dump() for msg in messages
+        ]  # Convert each ChatMessage to dict
