@@ -37,9 +37,11 @@ def create_sqlalchemy_engine(config: dict):
             f"mysql+pymysql://{config['db_user']}:{config['db_password']}"
             f"@{db_host}:{config['db_port']}/{config['db_name']}"
         )
+        
     else:
         raise ValueError(f"Unsupported dialect: {dialect}")
 
+    print("db url: " + url)
     return create_engine(url)
 
 

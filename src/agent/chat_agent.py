@@ -87,7 +87,7 @@ class ChatAgent:
         chat_store = SimpleChatStore()
 
         self.chat_memory = ChatMemoryBuffer.from_defaults(
-            token_limit=3000,
+            token_limit=6000,
             chat_store=chat_store,
             chat_store_key=uuid,
         )
@@ -165,10 +165,9 @@ class ChatAgent:
 
         await handler
         messages = self.chat_memory.get_all()
+        self.current_token_count = self.chat_memory._token_count_for_messages(messages)
         print("-" * 12)
-        print(
-            f"Current tokens used in conversation: {self.chat_memory._token_count_for_messages(messages)}"
-        )
+        print(f"Current tokens used in conversation: {self.current_token_count}")
         print("-" * 12)
         return response_text
 
@@ -177,3 +176,33 @@ class ChatAgent:
         return [
             msg.model_dump() for msg in messages
         ]  # Convert each ChatMessage to dict
+
+    # def summarize_chat_history(self):
+    #     # this method will summarize the chat history and place it into the system prompt
+    #     # the chat history list will be cleared
+
+    #     if self.current_token_count < 3000:
+    #         return
+
+    #     messages = self.chat_memory.get_all()
+    #     messages_text = ""
+    #     for message in messages:
+    #         messages_text += f"{message.role}: {message.content}\n"
+
+    #     response = self.llm.complete(
+    #         f"""
+    #         Summarize the following chat history and convert into the following template:
+    #         User: ...\nAssistant: Called tool [tool name] with args [tool args] , Observed correct / incorrect response, ...[Called other tool and observed response]... and Answered: ...
+
+    #         If there is any data in Answer, then please preserve it. But you may summarize the text
+
+    #         Chat History:
+    #         {messages_text}
+    #         """
+    #     )
+
+    #     self.agent.formatter.system_header = REACT_SYSTEM_PROMPT.replace(
+    #         "{summarized_chat_history}", response.text.strip(), 1
+    #     )
+
+    #     self.chat_memory.reset()

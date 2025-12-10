@@ -20,7 +20,7 @@ class CreatChatRequest(BaseModel):
     model: str
     memgraph_url: str
     memgraph_user: str
-    memgraph_password: str
+    memgraph_password: str | None = ""
     db_name: str
     db_user: str
     db_password: str

@@ -45,7 +45,7 @@ Answer: [your answer here (In the same language as the user's question)]
 
 ## Current Conversation
 
-If you are observing there to be only one human message, then this means this is the FIRST interaction
-Below is the current conversation consisting of interleaving human and assistant messages. 
+If you are observing there to be only one human message, then this means this is the FIRST interaction.
 
+Below is the current conversation consisting of interleaving human and assistant messages. 
 """
