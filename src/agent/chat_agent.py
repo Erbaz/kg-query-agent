@@ -180,11 +180,13 @@ class ChatAgent:
                 if isinstance(ev, InternalDispatchEvent):
                     print(type(ev), ev)
                 if isinstance(ev, ToolCallResult):
-                    print(
-                        f"Call {ev.tool_name} with args {ev.tool_kwargs}\nReturned: {ev.tool_output}"
-                    )
+                    tool_call_result = f"Call {ev.tool_name} with args {ev.tool_kwargs}\nReturned: {ev.tool_output}"
+                    print(tool_call_result)
+                    yield f"data: {tool_call_result}\n\n"
                 elif isinstance(ev, AgentStream):
                     delta = ev.delta or ""
+                    if not delta.strip():
+                        continue
                     response_text += delta
                     print(delta, end="", flush=True)
                     yield f"data: {ev.delta}\n\n"
