@@ -171,6 +171,29 @@ class ChatAgent:
         print("-" * 12)
         return response_text
 
+
+    async def chat_stream_generator(self, user_input: str):
+        try:
+            handler = self.agent.run(user_input, ctx=self.chatCtx, memory=self.chat_memory)
+            response_text = ""
+            async for ev in handler.stream_events(expose_internal=True):
+                if isinstance(ev, InternalDispatchEvent):
+                    print(type(ev), ev)
+                if isinstance(ev, ToolCallResult):
+                    print(
+                        f"Call {ev.tool_name} with args {ev.tool_kwargs}\nReturned: {ev.tool_output}"
+                    )
+                elif isinstance(ev, AgentStream):
+                    delta = ev.delta or ""
+                    response_text += delta
+                    print(delta, end="", flush=True)
+                    yield f"data: {ev.delta}\n\n"
+
+            yield "data: [DONE]\n\n\n"    
+
+        except Exception as e:
+            raise e
+
     def get_chat_history(self) -> list[dict]:
         messages = self.chat_memory.get_all()
         return [

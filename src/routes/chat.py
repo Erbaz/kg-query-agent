@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from src.agent.chat_agent import ChatAgent
 from src.cache.chat_cache import chat_cache
@@ -86,6 +87,33 @@ async def query_endpoint(chat_id: str, req: QueryRequest):
     response = await chat_agent.chat_stream(req.question)
 
     return QueryResponse(answer=response)
+
+
+@router.post("/chat/{chat_id}/stream")
+async def chat_stream_endpoint(chat_id: str, req: QueryRequest):
+    if not req.question or not req.question.strip():
+        raise HTTPException(status_code=400, detail="question is required")
+
+    # Convert string id to UUID for dictionary lookup
+    try:
+        uuid.UUID(chat_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid chat_id format")
+
+    chat_agent = chat_cache.get(chat_id)
+    if chat_agent is None:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+
+    return StreamingResponse(
+        chat_agent.chat_stream_generator(req.question), 
+        media_type="text/event-stream",
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no',  # Critical for Nginx, but helps elsewhere
+            'Transfer-Encoding': 'chunked',
+        }
+    )
 
 
 @router.get("/chat/{chat_id}")
