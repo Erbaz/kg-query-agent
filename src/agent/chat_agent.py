@@ -171,11 +171,11 @@ class ChatAgent:
         print("-" * 12)
         return response_text
 
-
     async def chat_stream_generator(self, user_input: str):
         try:
             handler = self.agent.run(user_input, ctx=self.chatCtx, memory=self.chat_memory)
-            response_text = ""
+            buffer = ""
+            
             async for ev in handler.stream_events(expose_internal=True):
                 if isinstance(ev, InternalDispatchEvent):
                     print(type(ev), ev)
@@ -187,13 +187,41 @@ class ChatAgent:
                     delta = ev.delta or ""
                     if not delta.strip():
                         continue
-                    response_text += delta
+                    
+                    buffer += delta
                     print(delta, end="", flush=True)
-                    yield f"data: {ev.delta}\n\n"
+                    
+                    # Split on whitespace boundaries
+                    while True:
+                        # Check for newline first
+                        if '\n' in buffer:
+                            lines = buffer.split('\n', 1)
+                            if lines[0]:  # Only yield if there's content
+                                yield f"data: {lines[0]}\n\n"
+                            buffer = lines[1]
+                        # Then check for space
+                        elif ' ' in buffer:
+                            parts = buffer.split(' ', 1)
+                            if parts[0]:  # Only yield if there's content
+                                yield f"data: {parts[0]}\n\n"
+                            buffer = parts[1]
+                        else:
+                            # No whitespace boundary found, keep buffering
+                            break
+            
+            # Flush any remaining content in buffer at the end
+            if buffer:
+                yield f"data: {buffer}\n\n"
 
-            yield "data: [DONE]\n\n\n"    
+            messages = self.chat_memory.get_all()
+            self.current_token_count = self.chat_memory._token_count_for_messages(messages)
+            
+            yield f"data: Tokens Used: {self.current_token_count}\n\n\n"
 
         except Exception as e:
+            # Flush any remaining content on error too
+            if buffer:
+                yield f"data: {buffer}\n\n"
             raise e
 
     def get_chat_history(self) -> list[dict]:
