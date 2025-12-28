@@ -26,35 +26,35 @@ QUERY_1 = """
 CALL migrate.mysql(
   'SELECT DISTINCT TABLE_NAME, TABLE_TYPE, TABLE_SCHEMA, TABLE_ROWS, CREATE_TIME
    FROM INFORMATION_SCHEMA.TABLES
-   WHERE TABLE_SCHEMA = "employees"',
-  {user: $user, password: $password, host: $host, database: $database}
+   WHERE TABLE_SCHEMA = "{database}"',
+  {{user: $user, password: $password, host: $host, database: $database}}
 )
 YIELD row
 UNWIND [row] AS r
-MERGE (:Table {name: r.TABLE_NAME})
-MERGE (:TableType {name: r.TABLE_TYPE})
-MERGE (:Schema {name: r.TABLE_SCHEMA})
-MERGE (:RowCount {value: r.TABLE_ROWS})
-MERGE (:CreatedAt {timestamp: r.CREATE_TIME});
+MERGE (:Table {{name: r.TABLE_NAME}})
+MERGE (:TableType {{name: r.TABLE_TYPE}})
+MERGE (:Schema {{name: r.TABLE_SCHEMA}})
+MERGE (:RowCount {{value: r.TABLE_ROWS}})
+MERGE (:CreatedAt {{timestamp: r.CREATE_TIME}});
 """
 
 QUERY_2 = """
 CALL migrate.mysql(
   'SELECT TABLE_NAME, TABLE_TYPE, TABLE_SCHEMA, TABLE_ROWS, CREATE_TIME 
    FROM INFORMATION_SCHEMA.TABLES 
-   WHERE TABLE_SCHEMA = "employees"',
-  {user: $user, password: $password, host: $host, database: $database}
+   WHERE TABLE_SCHEMA = "{database}"',
+  {{user: $user, password: $password, host: $host, database: $database}}
 )
 YIELD row
 UNWIND [row] AS r
 WITH 
   r,
   coalesce(r.TABLE_ROWS, "NULL") AS rowCountVal
-MERGE (t:Table {name: r.TABLE_NAME})
-MERGE (tt:TableType {name: r.TABLE_TYPE})
-MERGE (s:Schema {name: r.TABLE_SCHEMA})
-MERGE (rc:RowCount {value: rowCountVal})
-MERGE (c:CreatedAt {timestamp: r.CREATE_TIME})
+MERGE (t:Table {{name: r.TABLE_NAME}})
+MERGE (tt:TableType {{name: r.TABLE_TYPE}})
+MERGE (s:Schema {{name: r.TABLE_SCHEMA}})
+MERGE (rc:RowCount {{value: rowCountVal}})
+MERGE (c:CreatedAt {{timestamp: r.CREATE_TIME}})
 MERGE (t)-[:HAS_TYPE]->(tt)
 MERGE (t)-[:HAS_SCHEMA]->(s)
 MERGE (t)-[:HAS_ROWCOUNT]->(rc)
@@ -67,8 +67,8 @@ CALL migrate.mysql(
    JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
      ON kcu.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
     AND kcu.TABLE_NAME = tc.TABLE_NAME
-   WHERE kcu.CONSTRAINT_SCHEMA = "employees"',
-  {user: $user, password: $password, host: $host, database: $database}
+   WHERE kcu.CONSTRAINT_SCHEMA = "{database}"',
+  {{user: $user, password: $password, host: $host, database: $database}}
 )
 YIELD row
 UNWIND [row] AS r
@@ -77,8 +77,8 @@ WITH
   coalesce(r.COLUMN_NAME, "NULL") AS columnName,
   coalesce(r.CONSTRAINT_TYPE, "NONE") AS constraintType
 
-MERGE (t:Table {name: tableName})
-MERGE (c:Column {id: tableName + "." + columnName, name: columnName})
+MERGE (t:Table {{name: tableName}})
+MERGE (c:Column {{id: tableName + "." + columnName, name: columnName}})
 MERGE (t)-[:HAS_COLUMN]->(c)
 
 FOREACH (_ IN CASE WHEN constraintType = "PRIMARY KEY" THEN [1] ELSE [] END |
@@ -94,8 +94,8 @@ CALL migrate.mysql(
   'SELECT CONSTRAINT_NAME, TABLE_NAME, COLUMN_NAME, 
           REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME 
    FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
-   WHERE CONSTRAINT_SCHEMA = "employees" AND REFERENCED_TABLE_NAME IS NOT NULL',
-  {user: $user, password: $password, host: $host, database: $database}
+   WHERE CONSTRAINT_SCHEMA = "{database}" AND REFERENCED_TABLE_NAME IS NOT NULL',
+  {{user: $user, password: $password, host: $host, database: $database}}
 )
 YIELD row
 UNWIND [row] AS r
@@ -106,13 +106,14 @@ WITH
   coalesce(r.REFERENCED_TABLE_NAME, "NULL") AS refTableName,
   coalesce(r.REFERENCED_COLUMN_NAME, "NULL") AS refColumnName
 
-MERGE (srcTable:Table {name: tableName})
-MERGE (refTable:Table {name: refTableName})
-MERGE (constraint:Constraint {name: constraintName})
-MERGE (srcCol:Column {id: tableName + "." + columnName, name: columnName})
-MERGE (refCol:Column {id: refTableName + "." + refColumnName, name: refColumnName})
 
-MERGE (srcTable)-[:REFERENCES {via: constraintName}]->(refTable)
+MERGE (srcTable:Table {{name: tableName}})
+MERGE (refTable:Table {{name: refTableName}})
+MERGE (constraint:Constraint {{name: constraintName}})
+MERGE (srcCol:Column {{id: tableName + "." + columnName, name: columnName}})
+MERGE (refCol:Column {{id: refTableName + "." + refColumnName, name: refColumnName}})
+
+MERGE (srcTable)-[:REFERENCES {{via: constraintName}}]->(refTable)
 MERGE (constraint)-[:USES_COLUMN]->(srcCol)
 MERGE (constraint)-[:REFERENCES_COLUMN]->(refCol)
 MERGE (srcCol)-[:REFERENCES_COLUMN]->(refCol)
@@ -123,8 +124,8 @@ QUERY_4 = """
 CALL migrate.mysql(
   'SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE 
    FROM INFORMATION_SCHEMA.COLUMNS 
-   WHERE TABLE_SCHEMA = "employees"',
-  {user: $user, password: $password, host: $host, database: $database}
+   WHERE TABLE_SCHEMA = "{database}"',
+  {{user: $user, password: $password, host: $host, database: $database}}
 )
 YIELD row
 UNWIND [row] AS r
@@ -134,19 +135,22 @@ WITH
   coalesce(r.COLUMN_TYPE, "UNKNOWN") AS columnType,
   coalesce(r.IS_NULLABLE, "UNKNOWN") AS isNullable
 
-MERGE (c:Column {id: tableName + "." + columnName, name: columnName})
+MERGE (c:Column {{id: tableName + "." + columnName, name: columnName}})
 
-MERGE (t:ColumnType {name: columnType})
-MERGE (n:Nullable {name: isNullable, value: isNullable})
+MERGE (t:ColumnType {{name: columnType}})
+MERGE (n:Nullable {{name: isNullable, value: isNullable}})
 
 MERGE (c)-[:HAS_TYPE]->(t)
 MERGE (c)-[:IS_NULLABLE]->(n);
 """
+
+
 class SqlConfig(BaseModel):
     user: str
     password: str
     host: str
     database: str
+
 
 class SqlToMemERDMigration(MemgraphPropertyGraphStore):
     def __init__(
@@ -170,20 +174,26 @@ class SqlToMemERDMigration(MemgraphPropertyGraphStore):
 
         params = self.sql_config.model_dump()
 
+        db_name = params["database"]
+
         print("Running migration Query 1...")
-        self.structured_query(QUERY_1, param_map=params)
+        self.structured_query(QUERY_1.format(
+            database=db_name), param_map=params)
 
         print("Running migration Query 2...")
-        self.structured_query(QUERY_2, param_map=params)
+        self.structured_query(QUERY_2.format(
+            database=db_name), param_map=params)
 
         print("Running migration Query 3A...")
-        self.structured_query(QUERY_3A, param_map=params)
+        self.structured_query(QUERY_3A.format(
+            database=db_name), param_map=params)
 
         print("Running migration Query 3B...")
-        self.structured_query(QUERY_3B, param_map=params)
+        self.structured_query(QUERY_3B.format(
+            database=db_name), param_map=params)
 
         print("Running migration Query 4...")
-        self.structured_query(QUERY_4, param_map=params)
+        self.structured_query(QUERY_4.format(
+            database=db_name), param_map=params)
 
         print("Migration complete.")
-        

@@ -5,6 +5,7 @@ python-dotenv
 
 # LLM + Embedding Providers
 llama-index-llms-gemini
+llama-index-llms-google-genai
 llama-index-embeddings-gemini
 llama-index-embeddings-openai
 llama-index-llms-ollama

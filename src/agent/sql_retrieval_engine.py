@@ -1,3 +1,4 @@
+from llama_index.llms.google_genai import GoogleGenAI
 from typing import Optional
 from llama_index.core.llms import LLM
 from llama_index.core.tools import QueryEngineTool
@@ -37,7 +38,7 @@ def create_sqlalchemy_engine(config: dict):
             f"mysql+pymysql://{config['db_user']}:{config['db_password']}"
             f"@{db_host}:{config['db_port']}/{config['db_name']}"
         )
-        
+
     else:
         raise ValueError(f"Unsupported dialect: {dialect}")
 
@@ -71,7 +72,7 @@ class SQLRetrievalEngine:
             self.embed_model = OllamaEmbedding(model_name=embed_model_name)
 
         # ---- 2. GEMINI ----
-        if isinstance(llm, Gemini):
+        if isinstance(llm, GoogleGenAI):
             if not api_key:
                 raise ValueError("GEMINI_API_KEY is not set")
             self.embed_model = GeminiEmbedding(
@@ -100,7 +101,8 @@ class SQLRetrievalEngine:
         )
 
         # 4. Build query engine
-        self.query_engine = RetrieverQueryEngine.from_args(self.retriever, llm=llm)
+        self.query_engine = RetrieverQueryEngine.from_args(
+            self.retriever, llm=llm)
 
         self.db_tool = QueryEngineTool.from_defaults(
             query_engine=self.query_engine,

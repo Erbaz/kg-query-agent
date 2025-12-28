@@ -3,7 +3,7 @@ from sqlalchemy import sql
 from workflows.context.state_store import DictState
 
 
-from llama_index.llms.gemini import Gemini
+from llama_index.llms.google_genai import GoogleGenAI
 from llama_index.llms.gemini.base import GEMINI_MODELS
 from llama_index.llms.openai import OpenAI
 from llama_index.llms.openai.utils import ALL_AVAILABLE_MODELS as OPENAI_MODELS
@@ -47,7 +47,8 @@ class ChatAgent:
         api_key: Optional[str] = None,
         is_ollama: bool = False,
     ):
-        self.llm = self.init_llm(api_key, model_name=llm_model, is_ollama=is_ollama)
+        self.llm = self.init_llm(
+            api_key, model_name=llm_model, is_ollama=is_ollama)
         self.db_url = db_url
         self.db_type = db_type
         self.db_user = db_user
@@ -82,7 +83,8 @@ class ChatAgent:
             else tools
         )
 
-        self.agent = ReActAgent(llm=self.llm, tools=self.query_engine_tools)
+        self.agent = ReActAgent(
+            llm=self.llm, tools=self.query_engine_tools, streaming=True)
         self.agent.formatter.system_header = REACT_SYSTEM_PROMPT
         chat_store = SimpleChatStore()
 
@@ -108,13 +110,13 @@ class ChatAgent:
                 )
 
             else:
-                model = model_name or "models/gemini-2.0-flash"
-                if model in GEMINI_MODELS:
-                    if not api_key:
-                        raise ValueError(
-                            "GEMINI_API_KEY environment variable is not set."
-                        )
-                    return Gemini(model=model, api_key=api_key)
+                model = model_name or "gemini-2.0-flash"
+                # if model in GEMINI_MODELS:
+                if not api_key:
+                    raise ValueError(
+                        "GEMINI_API_KEY environment variable is not set."
+                    )
+                return GoogleGenAI(model=model, api_key=api_key)
 
                 if model in OPENAI_MODELS:
                     if not api_key:
@@ -149,7 +151,8 @@ class ChatAgent:
                 del migrator
 
     async def chat_stream(self, user_input: str) -> str:
-        handler = self.agent.run(user_input, ctx=self.chatCtx, memory=self.chat_memory)
+        handler = self.agent.run(
+            user_input, ctx=self.chatCtx, memory=self.chat_memory)
         response_text = ""
         async for ev in handler.stream_events(expose_internal=True):
             if isinstance(ev, InternalDispatchEvent):
@@ -165,18 +168,25 @@ class ChatAgent:
 
         await handler
         messages = self.chat_memory.get_all()
-        self.current_token_count = self.chat_memory._token_count_for_messages(messages)
+        self.current_token_count = self.chat_memory._token_count_for_messages(
+            messages)
         print("-" * 12)
-        print(f"Current tokens used in conversation: {self.current_token_count}")
+        print(
+            f"Current tokens used in conversation: {self.current_token_count}")
         print("-" * 12)
         return response_text
 
     async def chat_stream_generator(self, user_input: str):
+        print("chat_stream_generator invoked")
+        buffer = ""
         try:
-            handler = self.agent.run(user_input, ctx=self.chatCtx, memory=self.chat_memory)
-            buffer = ""
-            
+            print("user_input: ", user_input)
+            handler = self.agent.run(
+                user_input, ctx=self.chatCtx, memory=self.chat_memory)
+            print("before stream_events")
+
             async for ev in handler.stream_events(expose_internal=True):
+                print("event streaming: ", ev)
                 if isinstance(ev, InternalDispatchEvent):
                     print(type(ev), ev)
                 if isinstance(ev, ToolCallResult):
@@ -187,10 +197,10 @@ class ChatAgent:
                     delta = ev.delta or ""
                     if not delta.strip():
                         continue
-                    
+
                     buffer += delta
                     print(delta, end="", flush=True)
-                    
+
                     # Split on whitespace boundaries
                     while True:
                         # Check for newline first
@@ -208,14 +218,15 @@ class ChatAgent:
                         else:
                             # No whitespace boundary found, keep buffering
                             break
-            
+
             # Flush any remaining content in buffer at the end
             if buffer:
                 yield f"data: {buffer}\n\n"
 
             messages = self.chat_memory.get_all()
-            self.current_token_count = self.chat_memory._token_count_for_messages(messages)
-            
+            self.current_token_count = self.chat_memory._token_count_for_messages(
+                messages)
+
             yield f"data: Tokens Used: {self.current_token_count}\n\n\n"
 
         except Exception as e:
