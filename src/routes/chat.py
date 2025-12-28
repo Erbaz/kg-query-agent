@@ -58,7 +58,8 @@ async def create_chat(req: CreatChatRequest):
         chat_agent.migration_to_memgraph()
 
         if not chat_cache.store(chat_id, chat_agent):
-            raise HTTPException(status_code=500, detail="Unable to create chat session")
+            raise HTTPException(
+                status_code=500, detail="Unable to create chat session")
 
         return {"chat_id": chat_id}
     except Exception as e:
@@ -91,6 +92,7 @@ async def query_endpoint(chat_id: str, req: QueryRequest):
 
 @router.post("/chat/{chat_id}/stream")
 async def chat_stream_endpoint(chat_id: str, req: QueryRequest):
+
     if not req.question or not req.question.strip():
         raise HTTPException(status_code=400, detail="question is required")
 
@@ -101,11 +103,12 @@ async def chat_stream_endpoint(chat_id: str, req: QueryRequest):
         raise HTTPException(status_code=400, detail="Invalid chat_id format")
 
     chat_agent = chat_cache.get(chat_id)
+    print(f"chat_agent: {chat_agent}")
     if chat_agent is None:
         raise HTTPException(status_code=404, detail="Chat session not found")
 
     return StreamingResponse(
-        chat_agent.chat_stream_generator(req.question), 
+        chat_agent.chat_stream_generator(req.question),
         media_type="text/event-stream",
         headers={
             'Cache-Control': 'no-cache',
